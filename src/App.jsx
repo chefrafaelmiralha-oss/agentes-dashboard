@@ -7,6 +7,7 @@ import StatsCards from './components/StatsCards.jsx'
 import LogFeed from './components/LogFeed.jsx'
 import RestaurantesPanel from './components/RestaurantesPanel.jsx'
 import Playground from './components/Playground.jsx'
+import Validacao from './components/Validacao.jsx'
 
 export default function App() {
   const [activeAgent, setActiveAgent] = useState(AGENTS.find(a => a.active))
@@ -40,6 +41,7 @@ export default function App() {
   const tabs = [
     { id: 'logs', label: 'Logs' },
     { id: 'playground', label: 'Playground' },
+    { id: 'validacao', label: 'Validação E2E' },
   ]
 
   return (
@@ -104,6 +106,12 @@ export default function App() {
           {tab === 'playground' && activeAgent && (
             <div style={styles.playgroundWrap}>
               <Playground agent={activeAgent} />
+            </div>
+          )}
+
+          {tab === 'validacao' && activeAgent && (
+            <div style={styles.playgroundWrap}>
+              <Validacao agent={activeAgent} />
             </div>
           )}
         </div>
