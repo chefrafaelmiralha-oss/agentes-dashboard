@@ -44,10 +44,13 @@ export default function Validacao({ agent }) {
       if (r.ok) {
         const data = await r.json()
         setMentorados(data)
-        const firstAtivo = data.find(m => m.agente_ativo)
-        if (firstAtivo) setSelected(firstAtivo.id)
+        if (data.length > 0) setSelected(data[0].id)
+      } else {
+        console.error('mentorados fetch error', r.status, await r.text())
       }
-    } catch { /* silently fail */ }
+    } catch (err) {
+      console.error('mentorados fetch failed', err)
+    }
     setLoadingList(false)
   }
 
@@ -117,22 +120,19 @@ export default function Validacao({ agent }) {
         <div style={s.panelTitle}>Configuração</div>
 
         <label style={s.label}>Mentorado</label>
-        {loadingList ? (
-          <div style={s.hint}>Carregando mentorados…</div>
-        ) : (
-          <select
-            value={selected}
-            onChange={e => setSelected(e.target.value)}
-            style={s.select}
-          >
-            <option value="">Selecione…</option>
-            {mentorados.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.nome} {m.agente_ativo ? '●' : '○'} — {m.tutor || '—'}
-              </option>
-            ))}
-          </select>
-        )}
+        <select
+          value={selected}
+          onChange={e => setSelected(e.target.value)}
+          style={s.select}
+          disabled={loadingList}
+        >
+          <option value="">{loadingList ? 'Carregando…' : mentorados.length === 0 ? 'Nenhum encontrado' : 'Selecione…'}</option>
+          {mentorados.map(m => (
+            <option key={m.id} value={m.id}>
+              {m.nome}{m.agente_ativo ? ' ●' : ''} — {m.tutor || '—'}
+            </option>
+          ))}
+        </select>
 
         {selectedMentorado && (
           <div style={s.statusGrid}>
