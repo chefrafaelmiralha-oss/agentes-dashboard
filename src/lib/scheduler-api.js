@@ -93,8 +93,14 @@ export function computeSendAt(startsAt, offsetMinutes) {
 }
 
 export function previewMessages(itens, nomeEvento, startsAt, link, extras = {}) {
-  if (!itens?.length || !nomeEvento || !startsAt || !link) return []
-  const ctx = buildContext(nomeEvento, startsAt, link, extras)
+  if (!itens?.length || !startsAt) return []
+  // Campos não preenchidos mostram a variável literal no preview (ex: "{link}")
+  const ctx = buildContext(
+    nomeEvento || '{nome_evento}',
+    startsAt,
+    link || '{link}',
+    extras,
+  )
   return [...itens]
     .sort((a, b) => a.offset_minutes - b.offset_minutes)
     .map(item => ({

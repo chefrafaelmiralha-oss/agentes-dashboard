@@ -316,9 +316,8 @@ export default function Eventos({ api, showToast }) {
                 {preview.length === 0 ? (
                   <div style={s.previewEmpty}>
                     {!modal.form.template_id ? 'Selecione um template para ver o preview.' :
-                     !modal.form.nome_evento || !modal.form.starts_at || !modal.form.link
-                       ? 'Preencha nome, data/hora e link para visualizar.'
-                       : 'Nenhum item no template.'}
+                     !modal.form.starts_at ? 'Preencha a data/hora para visualizar.' :
+                     'Nenhum item no template.'}
                   </div>
                 ) : (
                   <div style={s.previewList}>
