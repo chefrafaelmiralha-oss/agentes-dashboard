@@ -8,6 +8,7 @@ import LogFeed from './components/LogFeed.jsx'
 import RestaurantesPanel from './components/RestaurantesPanel.jsx'
 import Playground from './components/Playground.jsx'
 import Validacao from './components/Validacao.jsx'
+import Agendamentos from './components/agendamentos/Agendamentos.jsx'
 
 export default function App() {
   const [activeAgent, setActiveAgent] = useState(AGENTS.find(a => a.active))
@@ -74,45 +75,51 @@ export default function App() {
               <div style={styles.agentName}>{activeAgent?.name}</div>
               <div style={styles.agentDesc}>{activeAgent?.description}</div>
             </div>
-            <AgentStatus agent={activeAgent} />
+            {activeAgent?.id !== 'agendamentos' && <AgentStatus agent={activeAgent} />}
           </div>
 
-          <div style={styles.tabs}>
-            {tabs.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{ ...styles.tab, ...(tab === t.id ? styles.tabActive : {}) }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {tab === 'logs' && (
-            loading && logs.length === 0 ? (
-              <div style={styles.loading}>Carregando logs…</div>
-            ) : (
-              <div style={styles.logsLayout}>
-                <StatsCards logs={logs} />
-                <div style={styles.grid2}>
-                  <LogFeed logs={logs} loading={loading} />
-                  <RestaurantesPanel logs={logs} />
-                </div>
+          {activeAgent?.id === 'agendamentos' ? (
+            <Agendamentos agent={activeAgent} />
+          ) : (
+            <>
+              <div style={styles.tabs}>
+                {tabs.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    style={{ ...styles.tab, ...(tab === t.id ? styles.tabActive : {}) }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
-            )
-          )}
 
-          {tab === 'playground' && activeAgent && (
-            <div style={styles.playgroundWrap}>
-              <Playground agent={activeAgent} />
-            </div>
-          )}
+              {tab === 'logs' && (
+                loading && logs.length === 0 ? (
+                  <div style={styles.loading}>Carregando logs…</div>
+                ) : (
+                  <div style={styles.logsLayout}>
+                    <StatsCards logs={logs} />
+                    <div style={styles.grid2}>
+                      <LogFeed logs={logs} loading={loading} />
+                      <RestaurantesPanel logs={logs} />
+                    </div>
+                  </div>
+                )
+              )}
 
-          {tab === 'validacao' && activeAgent && (
-            <div style={styles.playgroundWrap}>
-              <Validacao agent={activeAgent} />
-            </div>
+              {tab === 'playground' && activeAgent && (
+                <div style={styles.playgroundWrap}>
+                  <Playground agent={activeAgent} />
+                </div>
+              )}
+
+              {tab === 'validacao' && activeAgent && (
+                <div style={styles.playgroundWrap}>
+                  <Validacao agent={activeAgent} />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -8,6 +8,14 @@ export const AGENTS = [
     active: true,
   },
   {
+    id: 'agendamentos',
+    name: 'Agendamentos',
+    description: 'Mensagens agendadas em grupos WhatsApp',
+    url: import.meta.env.VITE_AGENT_GL_URL,
+    color: '#22c55e',
+    active: true,
+  },
+  {
     id: 'comercial',
     name: 'Comercial',
     description: 'Em breve',
