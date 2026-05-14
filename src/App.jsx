@@ -1,136 +1,139 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase.js'
-import { AGENTS } from './lib/config.js'
-import Sidebar from './components/Sidebar.jsx'
 import AgentStatus from './components/AgentStatus.jsx'
 import StatsCards from './components/StatsCards.jsx'
 import LogFeed from './components/LogFeed.jsx'
-import RestaurantesPanel from './components/RestaurantesPanel.jsx'
-import Playground from './components/Playground.jsx'
-import Validacao from './components/Validacao.jsx'
+import MentoradosGrid from './components/MentoradosGrid.jsx'
+import MentoradoDetalhe from './components/MentoradoDetalhe.jsx'
 import Agendamentos from './components/agendamentos/Agendamentos.jsx'
 
+const AGENT = { id: 'gl-mentorados', url: import.meta.env.VITE_AGENT_GL_URL }
+
+const TABS = [
+  { id: 'geral', label: 'Visão Geral' },
+  { id: 'mentorados', label: 'Mentorados' },
+  { id: 'agendamentos', label: 'Agendamentos' },
+]
+
 export default function App() {
-  const [activeAgent, setActiveAgent] = useState(AGENTS.find(a => a.active))
-  const [tab, setTab] = useState('logs')
+  const [tab, setTab] = useState('geral')
   const [logs, setLogs] = useState([])
+  const [mentorados, setMentorados] = useState([])
   const [loading, setLoading] = useState(true)
   const [realtimeActive, setRealtimeActive] = useState(false)
+  const [selectedMentorado, setSelectedMentorado] = useState(null)
 
   useEffect(() => {
-    fetchLogs()
+    fetchAll()
     const channel = supabase
       .channel('agente_logs_realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agente_logs' }, payload => {
-        setLogs(prev => [payload.new, ...prev])
+        if (payload.new.tipo !== 'alerta_grupo_geral') {
+          setLogs(prev => [payload.new, ...prev])
+        }
       })
       .subscribe(status => setRealtimeActive(status === 'SUBSCRIBED'))
     return () => supabase.removeChannel(channel)
   }, [])
 
-  async function fetchLogs() {
+  async function fetchAll() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('agente_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(200)
-    if (!error) setLogs(data || [])
+    const [logsRes, mentRes] = await Promise.all([
+      supabase
+        .from('agente_logs')
+        .select('*')
+        .neq('tipo', 'alerta_grupo_geral')
+        .order('created_at', { ascending: false })
+        .limit(300),
+      supabase
+        .from('mentorados')
+        .select('id,nome,tutor,contrato,pagamento,onboarding,tarefas,implementacao,tarefas_pos,ativo_tutorias,saude_financeira,agente_ativo,whatsapp_group_id')
+        .eq('agente_ativo', true)
+        .order('nome'),
+    ])
+    if (!logsRes.error) setLogs(logsRes.data || [])
+    if (!mentRes.error) setMentorados(mentRes.data || [])
     setLoading(false)
   }
 
-  const tabs = [
-    { id: 'logs', label: 'Logs' },
-    { id: 'playground', label: 'Playground' },
-    { id: 'validacao', label: 'Validação E2E' },
-  ]
+  function handleTabChange(id) {
+    setTab(id)
+    setSelectedMentorado(null)
+  }
 
   return (
-    <div style={styles.root}>
-      <header style={styles.header}>
-        <div style={styles.brand}>
-          <div style={styles.logo}>GL</div>
+    <div style={s.root}>
+      <header style={s.header}>
+        <div style={s.brand}>
+          <div style={s.logo}>GL</div>
           <div>
-            <div style={styles.title}>Agentes GL</div>
-            <div style={styles.subtitle}>Monitor de agentes WhatsApp</div>
+            <div style={s.title}>Monitor de Mentorados</div>
+            <div style={s.subtitle}>Gastronomia Lucrativa</div>
           </div>
         </div>
-        <div style={styles.headerRight}>
+        <div style={s.headerRight}>
           {realtimeActive && (
-            <div style={styles.realtime}>
-              <span style={styles.realtimeDot} />
-              Realtime ativo
+            <div style={s.realtime}>
+              <span style={s.realtimeDot} />
+              Realtime
             </div>
           )}
-          <button onClick={fetchLogs} style={styles.refreshBtn}>↻ Atualizar</button>
+          <AgentStatus agent={AGENT} />
+          <button onClick={fetchAll} style={s.refreshBtn}>↻ Atualizar</button>
         </div>
       </header>
 
-      <div style={styles.body}>
-        <Sidebar activeAgent={activeAgent} onSelect={setActiveAgent} />
+      <nav style={s.nav}>
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => handleTabChange(t.id)}
+            style={{ ...s.navTab, ...(tab === t.id ? s.navTabActive : {}) }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-        <div style={styles.content}>
-          <div style={styles.agentHeader}>
-            <div>
-              <div style={styles.agentName}>{activeAgent?.name}</div>
-              <div style={styles.agentDesc}>{activeAgent?.description}</div>
-            </div>
-            {activeAgent?.id !== 'agendamentos' && <AgentStatus agent={activeAgent} />}
-          </div>
-
-          {activeAgent?.id === 'agendamentos' ? (
-            <Agendamentos agent={activeAgent} />
+      <main style={s.main}>
+        {tab === 'geral' && (
+          loading ? (
+            <div style={s.loading}>Carregando…</div>
           ) : (
             <>
-              <div style={styles.tabs}>
-                {tabs.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    style={{ ...styles.tab, ...(tab === t.id ? styles.tabActive : {}) }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {tab === 'logs' && (
-                loading && logs.length === 0 ? (
-                  <div style={styles.loading}>Carregando logs…</div>
-                ) : (
-                  <div style={styles.logsLayout}>
-                    <StatsCards logs={logs} />
-                    <div style={styles.grid2}>
-                      <LogFeed logs={logs} loading={loading} />
-                      <RestaurantesPanel logs={logs} />
-                    </div>
-                  </div>
-                )
-              )}
-
-              {tab === 'playground' && activeAgent && (
-                <div style={styles.playgroundWrap}>
-                  <Playground agent={activeAgent} />
-                </div>
-              )}
-
-              {tab === 'validacao' && activeAgent && (
-                <div style={styles.playgroundWrap}>
-                  <Validacao agent={activeAgent} />
-                </div>
-              )}
+              <StatsCards logs={logs} mentorados={mentorados} />
+              <LogFeed logs={logs} loading={loading} />
             </>
-          )}
-        </div>
-      </div>
+          )
+        )}
+
+        {tab === 'mentorados' && (
+          selectedMentorado ? (
+            <MentoradoDetalhe
+              mentorado={selectedMentorado}
+              logs={logs.filter(l => l.restaurante === selectedMentorado.nome)}
+              onBack={() => setSelectedMentorado(null)}
+            />
+          ) : (
+            <MentoradosGrid
+              mentorados={mentorados}
+              logs={logs}
+              loading={loading}
+              onSelect={setSelectedMentorado}
+            />
+          )
+        )}
+
+        {tab === 'agendamentos' && <Agendamentos agent={AGENT} />}
+      </main>
     </div>
   )
 }
 
-const styles = {
+const s = {
   root: { minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column' },
-  header: { borderBottom: '1px solid var(--border)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 10 },
-  brand: { display: 'flex', alignItems: 'center', gap: 14 },
+  header: { borderBottom: '1px solid var(--border)', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 10 },
+  brand: { display: 'flex', alignItems: 'center', gap: 12 },
   logo: { width: 36, height: 36, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#fff' },
   title: { fontWeight: 700, fontSize: 15 },
   subtitle: { color: 'var(--muted)', fontSize: 12 },
@@ -138,16 +141,9 @@ const styles = {
   realtime: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--green)' },
   realtimeDot: { width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', display: 'inline-block' },
   refreshBtn: { background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', color: 'var(--text)', fontSize: 13, cursor: 'pointer', fontFamily: 'Inter, sans-serif' },
-  body: { display: 'flex', flex: 1, padding: '20px 24px', gap: 20, maxWidth: 1400, margin: '0 auto', width: '100%' },
-  content: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 },
-  agentHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
-  agentName: { fontSize: 20, fontWeight: 700 },
-  agentDesc: { fontSize: 13, color: 'var(--muted)', marginTop: 2 },
-  tabs: { display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', paddingBottom: 0 },
-  tab: { background: 'transparent', border: 'none', borderBottom: '2px solid transparent', padding: '8px 16px', color: 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'color 0.15s', marginBottom: -1 },
-  tabActive: { color: 'var(--accent)', borderBottomColor: 'var(--accent)' },
-  logsLayout: { display: 'flex', flexDirection: 'column', gap: 16 },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 300px', gap: 16 },
-  loading: { textAlign: 'center', color: 'var(--muted)', padding: 60 },
-  playgroundWrap: { flex: 1, minHeight: 600 },
+  nav: { display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 28px' },
+  navTab: { background: 'transparent', border: 'none', borderBottom: '2px solid transparent', padding: '12px 20px', color: 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', marginBottom: -1, transition: 'color 0.15s' },
+  navTabActive: { color: 'var(--accent)', borderBottomColor: 'var(--accent)' },
+  main: { flex: 1, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 1400, margin: '0 auto', width: '100%' },
+  loading: { textAlign: 'center', color: 'var(--muted)', padding: 80 },
 }

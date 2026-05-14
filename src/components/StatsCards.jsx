@@ -1,66 +1,69 @@
 import React from 'react'
 
-const TIPO_COLORS = {
-  anotacao: 'var(--blue)',
-  status: 'var(--accent)',
-  alerta: 'var(--yellow)',
-  ignorar: 'var(--muted)',
-}
+const LEGENDA = [
+  { key: 'anotacao', label: 'Anotação', desc: 'Informação registrada do grupo', color: 'var(--blue)' },
+  { key: 'status',   label: 'Status',   desc: 'Atualização de status do mentorado', color: 'var(--accent)' },
+  { key: 'alerta',   label: 'Alerta',   desc: 'Situação crítica detectada', color: 'var(--red)' },
+  { key: 'disparo',  label: 'Disparo',  desc: 'Mensagem enviada pelo agente', color: 'var(--green)' },
+]
 
-export default function StatsCards({ logs }) {
+export default function StatsCards({ logs, mentorados }) {
   const today = new Date().toDateString()
   const todayLogs = logs.filter(l => new Date(l.created_at).toDateString() === today)
+  const alertasHoje = todayLogs.filter(l => l.tipo === 'alerta').length
+  const ultimoLog = logs[0]
 
-  const byTipo = logs.reduce((acc, l) => {
-    acc[l.tipo] = (acc[l.tipo] || 0) + 1
-    return acc
-  }, {})
-
-  const alertas = logs.filter(l => l.tipo === 'alerta').length
-  const restaurantes = [...new Set(logs.map(l => l.restaurante))].length
+  function formatTime(dateStr) {
+    if (!dateStr) return '—'
+    const d = new Date(dateStr)
+    const diff = Math.floor((Date.now() - d) / 1000)
+    if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`
+    return d.toLocaleDateString('pt-BR')
+  }
 
   const cards = [
-    { label: 'Total de logs', value: logs.length, color: 'var(--accent)', sub: `${todayLogs.length} hoje` },
-    { label: 'Alertas', value: alertas, color: 'var(--yellow)', sub: 'tipo: alerta' },
-    { label: 'Restaurantes ativos', value: restaurantes, color: 'var(--green)', sub: 'grupos monitorados' },
-    { label: 'Hoje', value: todayLogs.length, color: 'var(--blue)', sub: new Date().toLocaleDateString('pt-BR') },
+    { label: 'Mentorados ativos', value: mentorados.length, color: 'var(--green)', sub: 'com agente ativo' },
+    { label: 'Registros hoje', value: todayLogs.length, color: 'var(--accent)', sub: `${logs.length} nos últimos 300` },
+    { label: 'Alertas hoje', value: alertasHoje, color: alertasHoje > 0 ? 'var(--red)' : 'var(--muted)', sub: 'situações críticas' },
+    { label: 'Último registro', value: ultimoLog?.restaurante?.split(' ')[0] || '—', color: 'var(--blue)', sub: formatTime(ultimoLog?.created_at) },
   ]
 
   return (
-    <div style={styles.grid}>
-      {cards.map(c => (
-        <div key={c.label} style={styles.card}>
-          <div style={{ ...styles.value, color: c.color }}>{c.value}</div>
-          <div style={styles.label}>{c.label}</div>
-          <div style={styles.sub}>{c.sub}</div>
-        </div>
-      ))}
+    <div>
+      <div style={s.grid}>
+        {cards.map(c => (
+          <div key={c.label} style={s.card}>
+            <div style={{ ...s.value, color: c.color, fontSize: c.label === 'Último registro' ? 22 : 34 }}>{c.value}</div>
+            <div style={s.label}>{c.label}</div>
+            <div style={s.sub}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
 
-      <div style={{ ...styles.card, gridColumn: 'span 4' }}>
-        <div style={styles.tipoLabel}>Distribuição por tipo</div>
-        <div style={styles.tipoRow}>
-          {['anotacao', 'status', 'alerta', 'ignorar'].map(tipo => (
-            <div key={tipo} style={styles.tipoItem}>
-              <div style={{ ...styles.tipoDot, background: TIPO_COLORS[tipo] }} />
-              <span style={{ color: TIPO_COLORS[tipo], fontWeight: 600 }}>{byTipo[tipo] || 0}</span>
-              <span style={styles.tipoName}>{tipo}</span>
-            </div>
-          ))}
-        </div>
+      <div style={s.legend}>
+        <span style={s.legendTitle}>Tipos de registro:</span>
+        {LEGENDA.map(item => (
+          <span key={item.key} style={s.legendItem}>
+            <span style={{ ...s.legendDot, background: item.color }} />
+            <strong style={{ color: item.color }}>{item.label}</strong>
+            <span style={s.legendDesc}> — {item.desc}</span>
+          </span>
+        ))}
       </div>
     </div>
   )
 }
 
-const styles = {
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 },
-  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' },
-  value: { fontSize: 32, fontWeight: 700, lineHeight: 1 },
-  label: { fontSize: 13, fontWeight: 600, marginTop: 6, color: 'var(--text)' },
+const s = {
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 },
+  card: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px' },
+  value: { fontSize: 34, fontWeight: 700, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  label: { fontSize: 13, fontWeight: 600, marginTop: 8, color: 'var(--text)' },
   sub: { fontSize: 11, color: 'var(--muted)', marginTop: 2 },
-  tipoLabel: { fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  tipoRow: { display: 'flex', gap: 32 },
-  tipoItem: { display: 'flex', alignItems: 'center', gap: 8 },
-  tipoDot: { width: 8, height: 8, borderRadius: '50%' },
-  tipoName: { color: 'var(--muted)', fontSize: 13 },
+  legend: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' },
+  legendTitle: { fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 },
+  legendItem: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 },
+  legendDot: { width: 7, height: 7, borderRadius: '50%', flexShrink: 0 },
+  legendDesc: { color: 'var(--muted)' },
 }

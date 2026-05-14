@@ -2,21 +2,21 @@
 
 :root {
   --bg: #0f1117;
-  --surface: #1a1d27;
-  --surface2: #222536;
-  --border: #2e3147;
-  --text: #e8eaf0;
-  --muted: #7b7f9e;
-  --accent: #6c63ff;
-  --accent-dim: #6c63ff22;
+  --surface: #181c27;
+  --surface2: #1f2436;
+  --border: #29304a;
+  --text: #eaedf5;
+  --muted: #7a85a8;
+  --accent: #d4820a;
+  --accent-dim: #d4820a18;
   --green: #22c55e;
-  --green-dim: #22c55e22;
-  --yellow: #f59e0b;
-  --yellow-dim: #f59e0b22;
+  --green-dim: #22c55e18;
+  --yellow: #eab308;
+  --yellow-dim: #eab30818;
   --red: #ef4444;
-  --red-dim: #ef444422;
+  --red-dim: #ef444418;
   --blue: #3b82f6;
-  --blue-dim: #3b82f622;
+  --blue-dim: #3b82f618;
 }
 
 body {
